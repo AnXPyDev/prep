@@ -80,20 +80,22 @@ void *builtin_include(io_interface_t *io, token_store_t *store, vector_t *args) 
 
 	FILE *fp = NULL;
 
-	for ( unsigned int i = include_directories.size - 1; i >= 0; i-- ) {
-		wstring_t *dir = (wstring_t*)vector_get(&include_directories, i);
+	for ( unsigned int i = include_directories.size; i > 0; i-- ) {
+		wstring_t *dir = (wstring_t*)vector_get(&include_directories, i - 1);
 		wcstombs(cdir, dir->data, 1024);
 
 		strcat(cdir, cpath);
-
 		fp = fopen(cdir, "r");
 		if ( fp != NULL ) {
+			if ( debug ) {
+				fprintf(stderr, "found file at %s\n", cdir);
+			}
 			break;
 		}
 	}
 
 	if ( fp == NULL ) {
-		fprintf(stderr, "cannot open file %s for inclusion\n", cpath);
+		fprintf(stderr, "cannot open file \"%s\" for inclusion\n", cpath);
 		return NULL;
 	}
 

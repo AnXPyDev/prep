@@ -64,6 +64,7 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 			wc = io_get(io);
 		} else {
 			fprintf(stderr, "EOF while reading argument list for macro %ls\n", macro_token->name.data);
+			return NULL;
 			break;
 		}
 
@@ -85,6 +86,11 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 
 		if ( opened == 1 && wc != L' ' ) {
 			opened = 2;
+		}
+
+		if ( !opened && wc != L' ' && wc != L'\n' && wc != macro_argument_list_open ) {
+			fprintf(stderr, "no opening for argment list in macro %ls\n", macro_token->name.data);
+			return NULL;
 		}
 
 		if ( !opened && !quoted && wc == macro_argument_list_open ) {

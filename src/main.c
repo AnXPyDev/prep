@@ -2,12 +2,15 @@
 #include <locale.h>
 #include <wchar.h>
 #include <malloc.h>
+#include <stdlib.h>
 
 #include "decl.h"
 #include "vector.h"
 #include "wstring.h"
 #include "hashmap.h"
 #include "io.h"
+
+int debug = 0;
 
 FILE *infile;
 FILE *outfile;
@@ -65,7 +68,6 @@ void *sub_base(io_interface_t *io) {
 				reset_token_match(&store);
 			}
 			if ( token != NULL && token->def != NULL ) {
-
 				if ( quoted == 1 ) {
 					legible_token = 0;
 				}
@@ -145,7 +147,45 @@ void *sub_base(io_interface_t *io) {
 	return NULL;
 }
 
+void add_include_dir(wchar_t *path) {
+	wstring_t *string = (wstring_t*)vector_push_blank(&include_directories);
+	wstring_init(string, path);
+	if ( string->data[string->size - 1] != L'/' ) {
+		wstring_putwc(string, L'/');
+	}
+}
+
+int process_args(int argc, char **argv) {
+	char *argname = "";
+	for ( int i = 0; i < argc; i++ ) {
+		char *arg = argv[i];
+		if ( arg[0] == '-' ) {
+			if ( strcmp(arg, "--debug") == 0 ) {
+				debug = 1;
+			} else {
+				argname = arg;
+			}
+		} else {
+			if ( strcmp(argname, "-I") == 0 ) {
+				wchar_t path[1024];
+				mbstowcs(path, arg, 1024);
+	
+				if ( debug ) {
+					fprintf(stderr, "adding directory %ls to include directories\n", path);
+				}
+
+				add_include_dir(path);
+			}
+		}
+	}
+	return 0;
+}
+
 int main(int argc, char **argv) {
+
+	if ( argc > 1 && strcmp(argv[1], "--debug") == 0 ) {
+		debug = 1;
+	}
 
 	setlocale(LC_ALL, "");
 
@@ -162,7 +202,11 @@ int main(int argc, char **argv) {
 
 	setup_builtins(&store);
 
-	io_interface_t default_io = io_interface_ftf(stdin, stdout);
+	if ( process_args(argc, argv) == 1 ) {
+		return 1;
+	}
+
+	io_interface_t default_io = io_interface_ftf(infile, outfile);
 
 	sub_base(&default_io);
 
@@ -171,6 +215,18 @@ int main(int argc, char **argv) {
 	wstring_destroy(&inclusive_chars);
 	wstring_destroy(&wc_buffer);
 	wstring_destroy(&quote_buffer);
+
+	for ( unsigned int i = 0; i < include_directories.size; i++ ) {
+
+	}
+
+	if ( infile != stdin ) {
+		fclose(infile);
+	}
+	
+	if ( outfile != stdout ) {
+		fclose(outfile);
+	}
 	
 	return 0;
 }
