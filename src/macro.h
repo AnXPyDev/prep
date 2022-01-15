@@ -31,6 +31,8 @@ void *sub_base(io_interface_t*);
 typedef void *(*builtin_fn)(io_interface_t*, token_store_t*, vector_t*);
 
 void *sub_macro(io_interface_t *io, token_t *macro_token) {
+	wstring_t log;
+	wstring_init_blank(&log, 12);
 
 	macro_payload_t *macro = NULL;
 	builtin_fn builtin = NULL;
@@ -46,9 +48,7 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 	vector_t arguments;
 	vector_init(&arguments, argument_count, sizeof(wstring_t));
 
-	wstring_t *argument = vector_push_blank(&arguments);
-	wstring_init_blank(argument, 20);
-	
+	wstring_t *argument = NULL;
 	unsigned int aix = 0;
 	
 	wchar_t wc;
@@ -60,13 +60,21 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 
 	while ( 1 ) {
 		eof = io_eof(io);
+
 		if ( !eof ) {
 			wc = io_get(io);
-		} else {
-			fprintf(stderr, "EOF while reading argument list for macro %ls\n", macro_token->name.data);
+			if ( wc == -1 ) {
+				eof = 1;
+			}
+		}
+
+		if ( eof ) {
+			fprintf(stderr, "EOF while reading argument list for macro %ls\n	at: %ls\n", macro_token->name.data, log.data);
 			return NULL;
 			break;
 		}
+
+		wstring_putwc(&log, wc);
 
 		// Handle escaped characters
 		if ( wc == escape_wc ) {
@@ -82,10 +90,17 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 					quoted--;
 				}
 			}
+		} else {
+			escaped = 0;
+
 		}
 
-		if ( opened == 1 && wc != L' ' ) {
+		if ( opened == 1 && wc != L' ' && wc != macro_argument_list_close && wc != macro_argument_list_delimiter ) {
 			opened = 2;
+			if ( !argument ) {
+				argument = vector_push_blank(&arguments);
+				wstring_init_blank(argument, 20);
+			}
 		}
 
 		if ( !opened && wc != L' ' && wc != L'\n' && wc != macro_argument_list_open ) {
@@ -96,13 +111,17 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 		if ( !opened && !quoted && wc == macro_argument_list_open ) {
 			opened = 1;
 		} else if ( opened && !quoted && wc == macro_argument_list_delimiter ) {
-			wstring_strip_trailing(argument, L' ');
-			aix++;
-			argument = vector_push_blank(&arguments);
-			wstring_init_blank(argument, 20);
-			opened = 1;
-		} else if ( opened == 2 && !quoted && wc == macro_argument_list_close ) {
-			wstring_strip_trailing(argument, L' ');
+			if ( argument ) {
+				wstring_strip_trailing(argument, L' ');
+				aix++;
+				argument = vector_push_blank(&arguments);
+				wstring_init_blank(argument, 20);
+				opened = 1;
+			}
+		} else if ( opened && !quoted && wc == macro_argument_list_close ) {
+			if ( argument ) {
+				wstring_strip_trailing(argument, L' ');
+			}
 			opened = 0;
 			break;
 		} else if ( opened == 2 ) {
@@ -112,12 +131,13 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 	}
 
 	
-	
+		
 	token_t **arg_tokens = (token_t**)alloca(sizeof(token_t*) * argument_count);
 
 	vector_t arguments_processed;
+
 	vector_init(&arguments_processed, arguments.size, sizeof(wstring_t));
-	
+		
 	if ( builtin ) {
 		for ( unsigned int i = 0; i < arguments.size; i++ ) {
 			wstring_t *arg_val = (wstring_t*)vector_get(&arguments, i);
@@ -135,6 +155,10 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 
 	if ( !macro ) {
 		return NULL;
+	}
+
+	if ( arguments.size < argument_count ) {
+		fprintf(stderr, "not enough arguments provided to macro \"%ls\"\n", macro_token->name.data);
 	}
 
 	for ( unsigned int i = 0; i < argument_count; i++ ) {
@@ -179,6 +203,8 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 	}
 
 	vector_destroy(&arguments);
+
+	wstring_destroy(&log);
 
 	
 	return NULL;

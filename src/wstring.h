@@ -89,6 +89,8 @@ int wstring_resize(wstring_t *wstring, unsigned int new_capacity) {
 		memcpy(new_data, wstring->data, sizeof(wchar_t) * (wstring->size + 1));
 	}
 
+	free(wstring->data);
+	wstring->data = new_data;
 	wstring->capacity = new_capacity;
 
 	return 0;
@@ -130,6 +132,12 @@ int wstring_cat_raw(wstring_t *wstring, const wchar_t *other) {
 int wstring_set_size(wstring_t *wstring, unsigned int size) {
 	wstring->size = size;
 	wstring->data[wstring->size] = NULL_WCHAR;
+	return 0;
+}
+
+int wstring_reload_size(wstring_t *wstring) {
+	wstring->size = wcslen(wstring->data);
+	return 0;
 }
 
 int wstring_contains_wc(const wstring_t *wstring, wchar_t wc) {
@@ -156,9 +164,9 @@ int wstring_equal(const wstring_t *wstring, const wstring_t *other) {
 	return 1;
 }
 
-int wstring_write(const wstring_t *wstring, void (*write_fn)(wchar_t, void*), void *write_payload) {
+int wstring_write(const wstring_t *wstring, io_interface_t *io) {
 	for ( unsigned int i = 0; i < wstring->size; i++ ) {
-		write_fn(wstring->data[i], write_payload);
+		io_put(io, wstring->data[i]);
 	}
 }
 

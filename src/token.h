@@ -2,12 +2,14 @@
 
 typedef enum {
 	token_null,
+	token_empty,
 	token_string,
 	token_builtin,
-	token_list,
+	token_dnl,
+	token_stringlist,
 	token_bool,
 	token_num,
-	token_macro
+	token_macro,
 } token_type_e ;
 
 typedef struct token_def_s {
@@ -25,12 +27,29 @@ token_def_t *token_def_create(token_type_e type, void *payload) {
 	return result;
 }
 
+vector_t *stringlist_create_payload() {
+	vector_t *result = malloc(sizeof(vector_t));
+	vector_init(result, 2, sizeof(wstring_t));
+	return result;
+}
+
+void stringlist_destroy_payload(vector_t *vec) {
+	for ( unsigned int i = 0; i < vec->size; i++ ) {
+		wstring_destroy((wstring_t*)vector_get(vec, i));
+	}
+
+	vector_destroy(vec);
+	free(vec);
+}
+
 int token_def_destroy(token_def_t *def) {
 	if ( def->type == token_string ) {
 		wstring_destroy((wstring_t*)def->payload);
 		free(def->payload);
 	} else if ( def->type == token_macro ) {
 		macro_destroy_payload((macro_payload_t*)def->payload);
+	} else if ( def->type == token_stringlist ) {
+		stringlist_destroy_payload((vector_t*)def->payload);
 	}
 
 	free(def);
@@ -95,6 +114,8 @@ int token_store_destroy(token_store_t *store) {
 int token_pushdef(token_t *token, token_def_t *def) {
 	def->prev_def = token->def;
 	token->def = def;
+
+	return 0;
 }
 
 int token_popdef(token_t *token) {
@@ -108,11 +129,33 @@ int token_popdef(token_t *token) {
 	return 0;	
 }
 
+int token_setdef(token_t *token, token_def_t *def) {
+	if ( token->def == NULL ) {
+		return token_pushdef(token, def);
+	}
+	def->prev_def = token->def->prev_def;
+	token_def_destroy(token->def);
+	token->def = def;
+	return 0;
+}
+
+int token_undef(token_t *token) {
+	if ( token->def == NULL ) {
+		return 0;
+	}
+
+	token_def_destroy_stack(token->def);
+	token->def = NULL;
+}
+
 token_t *register_token_blank(token_store_t *store, const wstring_t *name) {
 	token_t *token = malloc(sizeof(token_t));
 	*(token_t**)vector_push_blank(&store->tokens) = token;
 	*(int*)vector_push_blank(&store->match_buffer) = 0;
 	*(token_t**)hashmap_push_blank_ws(&store->map, name) = token;
+
+	token_t *nt = *(token_t**)hashmap_get_ws(&store->map, name);
+
 	wstring_init_copy(&token->name, name);
 	token->def = NULL;
 	return token;
@@ -148,14 +191,20 @@ int match_token_wc(token_store_t *store, wchar_t wc) {
 }
 
 token_t *get_token(const token_store_t *store, const wstring_t *name) {
-	return hashmap_get_ws(&store->map, name);
+	token_t **token_ptr = (token_t**)hashmap_get_ws(&store->map, name);
+	if ( token_ptr == NULL ) {
+		return NULL;
+	}
+
+	return *token_ptr;
 }
 
 token_t *ensure_token(token_store_t *store, const wstring_t *name) {
 	token_t *token = get_token(store, name);
-
+	
 	if ( token == NULL ) {
-		return register_token_blank(store, name);
+		token = register_token_blank(store, name);
+		return token;
 	}
 
 	return token;
@@ -166,7 +215,10 @@ token_t *get_token_match(token_store_t *store) {
 		int *match = (int*)vector_get(&store->match_buffer, i);
 	
 		if ( *match == 0 ) {
-			return *(token_t**)vector_get(&store->tokens, i);
+			token_t *token = *(token_t**)vector_get(&store->tokens, i);
+			if ( token->name.size == wc_buffer.size ) {
+				return token;
+			}
 		}
 	}
 

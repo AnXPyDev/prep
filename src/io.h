@@ -3,7 +3,7 @@ typedef void (*io_put_fn)(wchar_t, void*);
 typedef int (*io_eof_fn)(void*);
 typedef void (*io_unget_fn)(wchar_t, void*);
 
-typedef struct {
+typedef struct io_interface_s {
 	 io_get_fn get;
 	 io_put_fn put;
 	 io_eof_fn eof;
@@ -11,6 +11,7 @@ typedef struct {
 
 	 void *in_payload;
 	 void *out_payload;
+	 int is_default_out;
 } io_interface_t;
 
 
@@ -53,8 +54,12 @@ wchar_t io_get(io_interface_t *io) {
 	return io->get(io->in_payload);
 }
 
+#include <signal.h>
+
 void io_put(io_interface_t *io, wchar_t wc) {
-	return io->put(wc, io->out_payload);
+	if ( io->is_default_out && !mute || !io->is_default_out ) {
+		io->put(wc, io->out_payload);
+	}
 }
 
 int io_eof(io_interface_t *io) {
@@ -75,6 +80,7 @@ io_interface_t io_interface_ftf(FILE *infile, FILE *outfile) {
 
 	io.in_payload = (void*)infile;
 	io.out_payload = (void*)outfile;
+	io.is_default_out = 0;
 
 	return io;
 }
@@ -89,6 +95,7 @@ io_interface_t io_interface_sts(wchar_t **instring_reader, wstring_t *outstring)
 
 	io.in_payload = (void*)instring_reader;
 	io.out_payload = (void*)outstring;
+	io.is_default_out = 0;
 
 	return io;
 }
