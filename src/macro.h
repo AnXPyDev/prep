@@ -76,6 +76,7 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 
 		wstring_putwc(&log, wc);
 
+
 		// Handle escaped characters
 		if ( wc == escape_wc ) {
 			if ( !escaped ) {
@@ -95,6 +96,7 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 
 		}
 
+
 		if ( opened == 1 && wc != L' ' && wc != macro_argument_list_close && wc != macro_argument_list_delimiter ) {
 			opened = 2;
 			if ( !argument ) {
@@ -102,9 +104,9 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 				wstring_init_blank(argument, 20);
 			}
 		}
-
+	
 		if ( !opened && wc != L' ' && wc != L'\n' && wc != macro_argument_list_open ) {
-			fprintf(stderr, "no opening for argment list in macro %ls\n", macro_token->name.data);
+			fprintf(stderr, "no opening for argument list in macro %ls\n", macro_token->name.data);
 			return NULL;
 		}
 
@@ -130,8 +132,6 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 
 	}
 
-	
-		
 	token_t **arg_tokens = (token_t**)alloca(sizeof(token_t*) * argument_count);
 
 	vector_t arguments_processed;

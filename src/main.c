@@ -150,11 +150,16 @@ void *sub_base(io_interface_t *io) {
 		
 	
 		// Handle escaped characters
-		if ( wc == escape_wc && quoted < 2 ) {
-			if ( escaped ) {
-				goto write_wc;
+		if ( wc == escape_wc ) {
+			if ( !escaped ) {
+				if ( quoted ) {
+					escaped = 2;
+					goto write_wc;
+				} else {
+					escaped = 1;
+				}
 			} else {
-				escaped = 1;
+				goto write_wc;
 			}
 		//Handle quotes
 		} else if ( !escaped ) {
@@ -188,10 +193,13 @@ void *sub_base(io_interface_t *io) {
 			}
 		} else {
 			write_wc:
-			escaped = 0;
+			if ( escaped ) {
+				escaped--;
+			}
 			io_put(io, wc);
 		}
 	}
+	
 
 	wstring_destroy(&log);
 
