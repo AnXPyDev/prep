@@ -168,6 +168,7 @@ int wstring_write(const wstring_t *wstring, io_interface_t *io) {
 	for ( unsigned int i = 0; i < wstring->size; i++ ) {
 		io_put(io, wstring->data[i]);
 	}
+	return 0;
 }
 
 int wstring_strip_trailing(wstring_t *wstring, wchar_t wc) {
@@ -182,6 +183,7 @@ int wstring_strip_trailing(wstring_t *wstring, wchar_t wc) {
 	}
 
 	wstring_set_size(wstring, new_size);
+	return 0;
 }
 
 

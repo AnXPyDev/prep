@@ -31,6 +31,7 @@ int vector_destroy(vector_t *vector) {
 	free(vector->data);
 	vector->capacity = 0;
 	vector->size = 0;
+	return 0;
 }
 
 void *vector_get(const vector_t *vector, unsigned int index) {

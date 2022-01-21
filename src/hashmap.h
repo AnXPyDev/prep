@@ -88,7 +88,7 @@ int hashmap_destroy(hashmap_t *hashmap) {
 }
 
 void *hashmap_push_blank(hashmap_t *hashmap, const char *index, unsigned int index_size) {
-	unsigned int ix = hashmap_hash(index, index_size) % (HASHMAP_SIZE + 1);
+	unsigned int ix = hashmap_hash(index, index_size) % (HASHMAP_SIZE);
 
 	hashmap_node_t *new_node = hashmap_create_node(hashmap, index, index_size);
 
@@ -105,7 +105,7 @@ void *hashmap_push_blank(hashmap_t *hashmap, const char *index, unsigned int ind
 }
 
 hashmap_node_t **hashmap_get_node(hashmap_t *hashmap, const char *index, unsigned int index_size) {
-	unsigned int ix = hashmap_hash(index, index_size) % (HASHMAP_SIZE + 1);
+	unsigned int ix = hashmap_hash(index, index_size) % (HASHMAP_SIZE);
 
 	// qualifier not dicarded, hashmap does not get mutated
 	hashmap_node_t **node = hashmap->heads + ix;

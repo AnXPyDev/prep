@@ -52,7 +52,6 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 	int escaped = 0;
 	unsigned int quoted = 0;
 	int opened = 0;
-	unsigned int whitespace = 0;
 
 	while ( 1 ) {
 		eof = io_eof(io);

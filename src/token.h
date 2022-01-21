@@ -62,7 +62,7 @@ int token_def_destroy_stack(token_def_t *def) {
 		token_def_destroy_stack(def->prev_def);
 	}
 
-	token_def_destroy(def);
+	return token_def_destroy(def);
 }
 
 typedef struct {
@@ -146,6 +146,8 @@ int token_undef(token_t *token) {
 
 	token_def_destroy_stack(token->def);
 	token->def = NULL;
+
+	return 0;
 }
 
 token_t *register_token_blank(token_store_t *store, const wstring_t *name) {
@@ -153,8 +155,6 @@ token_t *register_token_blank(token_store_t *store, const wstring_t *name) {
 	*(token_t**)vector_push_blank(&store->tokens) = token;
 	*(int*)vector_push_blank(&store->match_buffer) = 0;
 	*(token_t**)hashmap_push_blank_ws(&store->map, name) = token;
-
-	token_t *nt = *(token_t**)hashmap_get_ws(&store->map, name);
 
 	wstring_init_copy(&token->name, name);
 	token->def = NULL;

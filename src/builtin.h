@@ -50,7 +50,6 @@ void *builtin_set(io_interface_t *io, token_store_t *store, vector_t *args) {
 	}
 
 	wstring_t *name = (wstring_t*)vector_get(args, 0);
-	wstring_t *val = (wstring_t*)vector_get(args, 1);
 
 	token_t *token = ensure_token(store, name);
 

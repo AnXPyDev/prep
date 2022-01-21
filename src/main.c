@@ -53,7 +53,7 @@ int check_inclusive_wc(wchar_t wc) {
 void *sub_base(io_interface_t *io) {
 	wstring_t log;
 	wstring_init_blank(&log, 12);
-	wchar_t wc;
+	wchar_t wc = 0;
 	int eof = 0;
 	int escaped = 0;
 	unsigned int quoted = 0;

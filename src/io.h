@@ -17,7 +17,7 @@ typedef struct io_interface_s {
 
 
 wchar_t io_get_file(void *file) {
-	fgetwc((FILE*)file);
+	return fgetwc((FILE*)file);
 }
 
 void io_put_file(wchar_t wc, void *file) {
@@ -57,7 +57,7 @@ wchar_t io_get(io_interface_t *io) {
 #include <signal.h>
 
 void io_put(io_interface_t *io, wchar_t wc) {
-	if ( io->is_default_out && !mute || !io->is_default_out ) {
+	if ( (io->is_default_out && !mute) || !io->is_default_out ) {
 		io->put(wc, io->out_payload);
 	}
 }
