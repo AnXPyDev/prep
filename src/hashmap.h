@@ -104,7 +104,7 @@ void *hashmap_push_blank(hashmap_t *hashmap, const char *index, unsigned int ind
 	return (void*)new_node + sizeof(hashmap_node_t);
 }
 
-hashmap_node_t **hashmap_get_node(const hashmap_t *hashmap, const char *index, unsigned int index_size) {
+hashmap_node_t **hashmap_get_node(hashmap_t *hashmap, const char *index, unsigned int index_size) {
 	unsigned int ix = hashmap_hash(index, index_size) % (HASHMAP_SIZE + 1);
 
 	// qualifier not dicarded, hashmap does not get mutated
@@ -120,7 +120,7 @@ hashmap_node_t **hashmap_get_node(const hashmap_t *hashmap, const char *index, u
 	}
 }
 
-void *hashmap_get(const hashmap_t *hashmap, const char *index, unsigned int index_size) {
+void *hashmap_get(hashmap_t *hashmap, const char *index, unsigned int index_size) {
 	hashmap_node_t **node = hashmap_get_node(hashmap, index, index_size);
 
 	if ( node == NULL ) {
@@ -150,7 +150,7 @@ void *hashmap_push_blank_ws(hashmap_t *hashmap, const wstring_t *key) {
 	return hashmap_push_blank(hashmap, (char*)key->data, key->size * sizeof(wchar_t));
 }
 
-void *hashmap_get_ws(const hashmap_t *hashmap, const wstring_t *key) {
+void *hashmap_get_ws(hashmap_t *hashmap, const wstring_t *key) {
 	return hashmap_get(hashmap, (char*)key->data, key->size * sizeof(wchar_t));
 }
 

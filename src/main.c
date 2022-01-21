@@ -15,22 +15,24 @@ int mute = 0;
 
 int debug = 0;
 
-FILE *infile;
 FILE *outfile;
 
-const wchar_t escape_wc = L'\\';
-const wchar_t quote_open = L'`';
-const wchar_t quote_close = L'\'';
-const wchar_t quote_break = L'#';
-const wchar_t quote_force_break = L'$';
-const wchar_t quote_reset = L'%';
-const wchar_t hardquote_open = L'^';
+
+#ifndef PREP_CONFIG_INCLUDED
+	#include "config.h"
+#endif
 
 wstring_t inclusive_chars;
 wstring_t wc_buffer;
 wstring_t quote_buffer;
-
 vector_t include_directories;
+
+struct input_file {
+	FILE *file;
+	int mute;
+};
+
+vector_t input_files;
 
 #include "token.h"
 
@@ -55,7 +57,6 @@ void *sub_base(io_interface_t *io) {
 	int eof = 0;
 	int escaped = 0;
 	unsigned int quoted = 0;
-	unsigned int hardquote = 1;
 	int legible_token = 1;
 	int dnl = 0;
 	int broken = 0;
@@ -215,12 +216,25 @@ void add_include_dir(wchar_t *path) {
 }
 
 int process_args(int argc, char **argv) {
+	int mute = 0;
 	char *argname = "";
 	for ( int i = 0; i < argc; i++ ) {
 		char *arg = argv[i];
 		if ( arg[0] == '-' ) {
 			if ( strcmp(arg, "--debug") == 0 ) {
 				debug = 1;
+			} else if ( strcmp(arg, "--mute") == 0 || strcmp(arg, "-m") == 0 ) {
+				mute = 1;
+			} else if ( strcmp(arg, "--stdin") == 0 || strcmp(arg, "-0") == 0 ) {
+				struct input_file *inf = (struct input_file*)vector_push_blank(&input_files);
+				inf->file = stdin;
+				inf->mute = mute;
+				mute = 0;
+				
+				if ( debug ) {
+					fprintf(stderr, "DBG: adding stdin to input files\n");
+				}
+
 			} else {
 				argname = arg;
 			}
@@ -278,17 +292,20 @@ int process_args(int argc, char **argv) {
 
 			} else if ( strcmp(argname, "--input") == 0 || strcmp(argname, "-i") == 0 ) {
 				if ( debug ) {
-					fprintf(stderr, "DBG: opening file \"%s\" as input\n", arg);
+					fprintf(stderr, "DBG: adding file \"%s\" as input\n", arg);
 				}
 				FILE *fp = fopen(arg, "r");
 				if ( fp == NULL ) {
-					fprintf(stderr, "cannot open file \"%s\" as input, defaulting to stdin\n", arg);
+					fprintf(stderr, "cannot open file \"%s\" for input\n", arg);
 				} else {
 					if ( debug ) {
 						fprintf(stderr, "DBG: input file \"%s\" opened successfully\n", arg);
 					}
-					infile = fp;
+					struct input_file *inf = (struct input_file*)vector_push_blank(&input_files);
+					inf->file = fp;
+					inf->mute = mute;
 				}
+				mute = 0;
 			} else if ( strcmp(argname, "--output") == 0 || strcmp(argname, "-o") == 0 ) {
 				if ( debug ) {
 					fprintf(stderr, "DBG: opening file \"%s\" as output\n", arg);
@@ -316,14 +333,15 @@ int main(int argc, char **argv) {
 
 	setlocale(LC_ALL, "");
 
-	infile = stdin;
 	outfile = stdout;
-	wstring_init(&inclusive_chars, L"_-");
+	wstring_init(&inclusive_chars, token_inclusive_chars);
 	wstring_init_blank(&wc_buffer, 128);
 	wstring_init_blank(&quote_buffer, 128);
 
 	vector_init(&include_directories, 1, sizeof(wstring_t));
 	wstring_init((wstring_t*)vector_push_blank(&include_directories), L"./");
+
+	vector_init(&input_files, 1, sizeof(struct input_file));
 	
 	token_store_init(&store);
 
@@ -333,10 +351,22 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	io_interface_t default_io = io_interface_ftf(infile, outfile);
-	default_io.is_default_out = 1;
+	if ( input_files.size == 0 ) {
+		struct input_file *inf = (struct input_file*)vector_push_blank(&input_files);
+		inf->file = stdin;
+		inf->mute = 0;
+	}
 
-	sub_base(&default_io);
+	for ( unsigned int i = 0; i < input_files.size; i++ ) {
+		struct input_file *inf = (struct input_file*)vector_get(&input_files, i);
+		mute = inf->mute;	
+
+		io_interface_t default_io = io_interface_ftf(inf->file, outfile);
+		default_io.is_default_out = 1;
+
+		sub_base(&default_io);
+	}
+
 
 	token_store_destroy(&store);
 
@@ -345,13 +375,20 @@ int main(int argc, char **argv) {
 	wstring_destroy(&quote_buffer);
 
 	for ( unsigned int i = 0; i < include_directories.size; i++ ) {
-
+		wstring_destroy((wstring_t*)vector_get(&include_directories, i));
 	}
 
-	if ( infile != stdin ) {
-		fclose(infile);
-	}
+	vector_destroy(&include_directories);
 	
+	for ( unsigned int i = 0; i < input_files.size; i++ ) {
+		struct input_file *inf = (struct input_file*)vector_get(&input_files, i);
+		if ( inf->file != stdin ) {
+			fclose(inf->file);
+		}
+	}
+
+	vector_destroy(&input_files);
+
 	if ( outfile != stdout ) {
 		fclose(outfile);
 	}

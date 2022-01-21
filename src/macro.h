@@ -23,10 +23,6 @@ int macro_destroy_payload(macro_payload_t *macro) {
 	return 0;
 }
 
-wchar_t macro_argument_list_open = L'(';
-wchar_t macro_argument_list_close = L')';
-wchar_t macro_argument_list_delimiter = L',';
-
 void *sub_base(io_interface_t*);
 typedef void *(*builtin_fn)(io_interface_t*, token_store_t*, vector_t*);
 

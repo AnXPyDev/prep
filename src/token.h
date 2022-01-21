@@ -190,7 +190,7 @@ int match_token_wc(token_store_t *store, wchar_t wc) {
 	return 0;
 }
 
-token_t *get_token(const token_store_t *store, const wstring_t *name) {
+token_t *get_token(token_store_t *store, const wstring_t *name) {
 	token_t **token_ptr = (token_t**)hashmap_get_ws(&store->map, name);
 	if ( token_ptr == NULL ) {
 		return NULL;
