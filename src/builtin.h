@@ -279,6 +279,90 @@ void *builtin_ifndef(io_interface_t *io, token_store_t *store, vector_t *args) {
 	return NULL;
 }
 
+void *builtin_ifeq(io_interface_t *io, token_store_t *store, vector_t *args) {
+	if ( args->size < 3 ) {
+		fprintf(stderr, "missing arguments for builtin ifeq\n");
+		return NULL;
+	}
+
+	wstring_t *wstr1 = (wstring_t*)vector_get(args, 0);
+	wstring_t *wstr2 = (wstring_t*)vector_get(args, 1);
+
+
+	if ( wstring_equal(wstr1, wstr2) ) {
+		io_interface_t sub_io = *io;
+		sub_io.get = io_get_string;
+		sub_io.unget = io_unget_string;
+		sub_io.eof = io_eof_string;
+		
+		wstring_t *result = (wstring_t*)vector_get(args, 2);
+
+		wchar_t *string_reader = result->data;
+
+		sub_io.in_payload = (void*)&string_reader;
+
+		sub_base(&sub_io);
+	} else if ( args->size > 3 ) { 
+		io_interface_t sub_io = *io;
+		sub_io.get = io_get_string;
+		sub_io.unget = io_unget_string;
+		sub_io.eof = io_eof_string;
+		
+		wstring_t *result = (wstring_t*)vector_get(args, 3);
+
+		wchar_t *string_reader = result->data;
+
+		sub_io.in_payload = (void*)&string_reader;
+
+		sub_base(&sub_io);
+
+	}
+
+	return NULL;
+}
+
+void *builtin_ifneq(io_interface_t *io, token_store_t *store, vector_t *args) {
+	if ( args->size < 3 ) {
+		fprintf(stderr, "missing arguments for builtin ifeq\n");
+		return NULL;
+	}
+
+	wstring_t *wstr1 = (wstring_t*)vector_get(args, 0);
+	wstring_t *wstr2 = (wstring_t*)vector_get(args, 1);
+
+
+	if ( !wstring_equal(wstr1, wstr2) ) {
+		io_interface_t sub_io = *io;
+		sub_io.get = io_get_string;
+		sub_io.unget = io_unget_string;
+		sub_io.eof = io_eof_string;
+		
+		wstring_t *result = (wstring_t*)vector_get(args, 2);
+
+		wchar_t *string_reader = result->data;
+
+		sub_io.in_payload = (void*)&string_reader;
+
+		sub_base(&sub_io);
+	} else if ( args->size > 3 ) { 
+		io_interface_t sub_io = *io;
+		sub_io.get = io_get_string;
+		sub_io.unget = io_unget_string;
+		sub_io.eof = io_eof_string;
+		
+		wstring_t *result = (wstring_t*)vector_get(args, 3);
+
+		wchar_t *string_reader = result->data;
+
+		sub_io.in_payload = (void*)&string_reader;
+
+		sub_base(&sub_io);
+
+	}
+
+	return NULL;
+}
+
 void *builtin_sys(io_interface_t *io, token_store_t *store, vector_t *args) {
 	if ( args->size < 1 ) {
 		fprintf(stderr, "missing arguments for builtin sys\n");
@@ -454,6 +538,24 @@ void setup_builtins(token_store_t *store) {
 		wstring_init(&key, L"ifnset");
 		token_t *macro = register_token_blank(store, &key);
 		token_def_t *def = token_def_create(token_builtin, (void*)&builtin_ifndef);
+		token_pushdef(macro, def);
+		wstring_destroy(&key);
+	}
+	
+	{
+		wstring_t key;
+		wstring_init(&key, L"ifeq");
+		token_t *macro = register_token_blank(store, &key);
+		token_def_t *def = token_def_create(token_builtin, (void*)&builtin_ifeq);
+		token_pushdef(macro, def);
+		wstring_destroy(&key);
+	}
+	
+	{
+		wstring_t key;
+		wstring_init(&key, L"ifneq");
+		token_t *macro = register_token_blank(store, &key);
+		token_def_t *def = token_def_create(token_builtin, (void*)&builtin_ifneq);
 		token_pushdef(macro, def);
 		wstring_destroy(&key);
 	}
