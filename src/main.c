@@ -187,8 +187,6 @@ void *sub_base(io_interface_t *io) {
 			} else if ( quoted <= 1 && wc == quote_break ) {
 				legible_token = 1;
 				broken = 1;
-			} else if ( quoted == 1 && wc == quote_reset ) {
-				legible_token = 1;
 			} else {
 				goto write_wc;
 			}
