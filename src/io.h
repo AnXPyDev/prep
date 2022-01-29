@@ -1,7 +1,7 @@
-typedef wchar_t (*io_get_fn)(void*);
-typedef void (*io_put_fn)(wchar_t, void*);
+typedef char (*io_get_fn)(void*);
+typedef void (*io_put_fn)(char, void*);
 typedef int (*io_eof_fn)(void*);
-typedef void (*io_unget_fn)(wchar_t, void*);
+typedef void (*io_unget_fn)(char, void*);
 
 typedef struct io_interface_s {
 	 io_get_fn get;
@@ -16,49 +16,49 @@ typedef struct io_interface_s {
 
 
 
-wchar_t io_get_file(void *file) {
-	return fgetwc((FILE*)file);
+char io_get_file(void *file) {
+	return fgetc((FILE*)file);
 }
 
-void io_put_file(wchar_t wc, void *file) {
-	fputwc(wc, (FILE*)file);
+void io_put_file(char c, void *file) {
+	fputc(c, (FILE*)file);
 }
 
 int io_eof_file(void *file) {
 	return feof((FILE*)file);
 }
 
-void io_unget_file(wchar_t wc, void *file) {
-	ungetwc(wc, (FILE*)file);
+void io_unget_file(char c, void *file) {
+	ungetc(c, (FILE*)file);
 }
 
-wchar_t io_get_string(void *string) {
-	wchar_t result = *(*(wchar_t**)string);
-	(*(wchar_t**)string)++;
+char io_get_string(void *string) {
+	char result = *(*(char**)string);
+	(*(char**)string)++;
 	return result;
 }
 
-void io_put_string(wchar_t wc, void *string) {
-	wstring_putwc((wstring_t*)string, wc);
+void io_put_string(char c, void *string) {
+	cstring_put((cstring_t*)string, c);
 }
 
 int io_eof_string(void *string) {
-	return **(wchar_t**)string == L'\0';
+	return **(char**)string == '\0';
 }
 
-void io_unget_string(wchar_t wc, void *string) {
-	(*(wchar_t**)string)--;
+void io_unget_string(char c, void *string) {
+	(*(char**)string)--;
 }
 
-wchar_t io_get(io_interface_t *io) {
+char io_get(io_interface_t *io) {
 	return io->get(io->in_payload);
 }
 
 #include <signal.h>
 
-void io_put(io_interface_t *io, wchar_t wc) {
+void io_put(io_interface_t *io, char c) {
 	if ( (io->is_default_out && !mute) || !io->is_default_out ) {
-		io->put(wc, io->out_payload);
+		io->put(c, io->out_payload);
 	}
 }
 
@@ -66,8 +66,8 @@ int io_eof(io_interface_t *io) {
 	return io->eof(io->in_payload);
 }
 
-void io_unget(io_interface_t *io, wchar_t wc) {
-	return io->unget(wc, io->in_payload);
+void io_unget(io_interface_t *io, char c) {
+	return io->unget(c, io->in_payload);
 }
 
 io_interface_t io_interface_ftf(FILE *infile, FILE *outfile) {
@@ -85,7 +85,7 @@ io_interface_t io_interface_ftf(FILE *infile, FILE *outfile) {
 	return io;
 }
 
-io_interface_t io_interface_sts(wchar_t **instring_reader, wstring_t *outstring) {
+io_interface_t io_interface_sts(char **instring_reader, cstring_t *outstring) {
 	io_interface_t io;
 
 	io.get = io_get_string;
@@ -100,9 +100,9 @@ io_interface_t io_interface_sts(wchar_t **instring_reader, wstring_t *outstring)
 	return io;
 }
 
-int wstring_write(const wstring_t *wstring, io_interface_t *io) {
-	for ( unsigned int i = 0; i < wstring->size; i++ ) {
-		io_put(io, wstring->data[i]);
+int cstring_write(const cstring_t *cstring, io_interface_t *io) {
+	for ( unsigned int i = 0; i < cstring->size; i++ ) {
+		io_put(io, cstring->data[i]);
 	}
 	return 0;
 }

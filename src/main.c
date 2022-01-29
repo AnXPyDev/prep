@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <locale.h>
-#include <wchar.h>
 #include <malloc.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "decl.h"
 #include "vector.h"
-#include "wstring.h"
+#include "cstring.h"
 #include "hashmap.h"
 
 int mute = 0;
@@ -22,9 +22,9 @@ FILE *outfile;
 	#include "config.h"
 #endif
 
-wstring_t inclusive_chars;
-wstring_t wc_buffer;
-wstring_t quote_buffer;
+cstring_t inclusive_chars;
+cstring_t c_buffer;
+cstring_t quote_buffer;
 vector_t include_directories;
 
 struct input_file {
@@ -41,19 +41,19 @@ token_store_t store;
 #include "macro.h"
 #include "builtin.h"
 
-int check_inclusive_wc(wchar_t wc) {
-	if ( ((store.wc_count != 0 && (wc >= 48 && wc <= 57)) || (wc >= 65 && wc <= 90) || (wc >= 97 && wc <= 122)) ) {
+int check_inclusive_c(char c) {
+	if ( ((store.c_count != 0 && (c >= 48 && c <= 57)) || (c >= 65 && c <= 90) || (c >= 97 && c <= 122)) ) {
 		return 1;
 	}
 
-       	return wstring_contains(&inclusive_chars, wc);
+       	return cstring_contains(&inclusive_chars, c);
 }
 
 
 void *sub_base(io_interface_t *io) {
-	wstring_t log;
-	wstring_init_blank(&log, 12);
-	wchar_t wc = 0;
+	cstring_t log;
+	cstring_init_blank(&log, 12);
+	char c = 0;
 	int eof = 0;
 	int escaped = 0;
 	unsigned int quoted = 0;
@@ -65,30 +65,30 @@ void *sub_base(io_interface_t *io) {
 		eof = io_eof(io);
 	
 		if ( !eof ) {
-			wc = io_get(io);
-			if ( wc == -1 ) { 
+			c = io_get(io);
+			if ( c == -1 ) { 
 				eof = 1;
 			} else {
-				wstring_putwc(&log, wc);
+				cstring_put(&log, c);
 			}
 		}
 		
 		
 		if ( dnl ) {
-			if ( wc == L'\n' ) {
+			if ( c == '\n' ) {
 				dnl = 0;
 			}
 			continue;
 		}
 
-		if ( !eof && !escaped && legible_token && check_inclusive_wc(wc) ) {
-			wstring_putwc(&wc_buffer, wc);
-			match_token_wc(&store, wc);
+		if ( !eof && !escaped && legible_token && check_inclusive_c(c) ) {
+			cstring_put(&c_buffer, c);
+			match_token_c(&store, c);
 			continue;
-		} else if ( store.wc_count != 0 ) {
+		} else if ( store.c_count != 0 ) {
 			token_t *token = get_token_match(&store);
 			if ( token != NULL ) {
-				wstring_set_size(&wc_buffer, 0);
+				cstring_set_size(&c_buffer, 0);
 				reset_token_match(&store);
 			}
 			if ( token != NULL && token->def != NULL ) {
@@ -99,10 +99,10 @@ void *sub_base(io_interface_t *io) {
 
 				// Handle token_string
 				if ( token->def->type == token_string ) {
-					wstring_t *string = (wstring_t*)token->def->payload;
-					//fprintf(stderr, "Sub string: {%ls}\n", string->data);
+					cstring_t *string = (cstring_t*)token->def->payload;
+					//fprintf(stderr, "Sub string: {%s}\n", string->data);
 
-					wchar_t *string_reader = string->data;
+					char *string_reader = string->data;
 					
 					io_interface_t sub_io = *io;
 
@@ -113,13 +113,13 @@ void *sub_base(io_interface_t *io) {
 
 					sub_base(&sub_io);
 				} else if ( token->def->type == token_macro || token->def->type == token_builtin ) {
-					//fprintf(stderr, "Sub macro %ls\n", token->name.data);
-					io_unget(io, wc);
+					//fprintf(stderr, "Sub macro %s\n", token->name.data);
+					io_unget(io, c);
 					sub_macro(io, token);
 					continue;
 				} else if ( token->def->type == token_dnl ) {
 					dnl = 1;
-					io_unget(io, wc);
+					io_unget(io, c);
 					continue;
 				}
 			} else {
@@ -129,7 +129,7 @@ void *sub_base(io_interface_t *io) {
 					io_put(io, quote_force_break);
 				}
 				broken = 0;
-				wstring_write(&wc_buffer, io);
+				cstring_write(&c_buffer, io);
 			}
 		} else {
 			if ( broken == 1 ) {
@@ -140,8 +140,8 @@ void *sub_base(io_interface_t *io) {
 			broken = 0;
 		}
 	
-		if ( wc_buffer.size != 0 ) {
-			wstring_set_size(&wc_buffer, 0);
+		if ( c_buffer.size != 0 ) {
+			cstring_set_size(&c_buffer, 0);
 			reset_token_match(&store);
 		}
 		
@@ -151,65 +151,65 @@ void *sub_base(io_interface_t *io) {
 		
 	
 		// Handle escaped characters
-		if ( wc == escape_wc ) {
+		if ( c == escape_c ) {
 			if ( !escaped ) {
 				if ( quoted ) {
 					escaped = 2;
-					goto write_wc;
+					goto write_c;
 				} else {
 					escaped = 1;
 				}
 			} else {
-				goto write_wc;
+				goto write_c;
 			}
 		//Handle quotes
 		} else if ( !escaped ) {
-			if ( wc == quote_open ) {
+			if ( c == quote_open ) {
 				quoted++;
 				legible_token = 0;
 
 				if ( quoted > 1 ) {
-					goto write_wc;
+					goto write_c;
 				}
-			} else if ( wc == quote_close ) {
+			} else if ( c == quote_close ) {
 				if ( quoted != 0 ) {
 					quoted--;
 					if ( quoted != 0 ) {
-						goto write_wc;
+						goto write_c;
 					}
 					legible_token = 1;
 				} else {
-					goto write_wc;
+					goto write_c;
 				}
-			} else if ( wc == quote_force_break ) {
+			} else if ( c == quote_force_break ) {
 				legible_token = 1;
 				broken = 2;
-			} else if ( quoted <= 1 && wc == quote_break ) {
+			} else if ( quoted <= 1 && c == quote_break ) {
 				legible_token = 1;
 				broken = 1;
 			} else {
-				goto write_wc;
+				goto write_c;
 			}
 		} else {
-			write_wc:
+			write_c:
 			if ( escaped ) {
 				escaped--;
 			}
-			io_put(io, wc);
+			io_put(io, c);
 		}
 	}
 	
 
-	wstring_destroy(&log);
+	cstring_destroy(&log);
 
 	return NULL;
 }
 
-void add_include_dir(wchar_t *path) {
-	wstring_t *string = (wstring_t*)vector_push_blank(&include_directories);
-	wstring_init(string, path);
-	if ( string->data[string->size - 1] != L'/' ) {
-		wstring_putwc(string, L'/');
+void add_include_dir(char *path) {
+	cstring_t *string = (cstring_t*)vector_push_blank(&include_directories);
+	cstring_init(string, path);
+	if ( string->data[string->size - 1] != '/' ) {
+		cstring_put(string, '/');
 	}
 }
 
@@ -238,42 +238,30 @@ int process_args(int argc, char **argv) {
 			}
 		} else {
 			if ( strcmp(argname, "-I") == 0 ) {
-				wchar_t path[1024];
-				mbstowcs(path, arg, 1024);
-	
 				if ( debug ) {
-					fprintf(stderr, "DBG: adding directory %ls to include directories\n", path);
+					fprintf(stderr, "DBG: adding directory %s to include directories\n", arg);
 				}
 
-				add_include_dir(path);
+				add_include_dir(arg);
 			} else if ( strcmp(argname, "-D") == 0 ) {
-				wchar_t name_buf[1024];
-
-				wstring_t name;
-				name.capacity = 1024;
-				name.data = name_buf;
-				name.size = 0;
-
-				wstring_t *val = NULL;
-				
+				cstring_t name;
+				cstring_t *val = NULL;
+			
 				char *cptr = arg;
 
-				while ( *cptr && *cptr != L'=' ) {
+				while ( *cptr && *cptr != '=' ) {
 					cptr++;
 				}
 
-				if ( *cptr == L'=' ) {
-					*cptr = L'\0';
+				if ( *cptr == '=' ) {
+					*cptr = '\0';
 
-					val = malloc(sizeof(wstring_t));
-					wstring_init_blank(val, 1024);
+					val = malloc(sizeof(cstring_t));
 
-					mbstowcs(val->data, cptr + 1, 1024);
-					wstring_reload_size(val);
+					cstring_init(val, cptr + 1);
 				}
-				
-				mbstowcs(name_buf, arg, 1024);
-				wstring_reload_size(&name);
+
+				cstring_init(&name, arg);
 
 				token_t *token = ensure_token(&store, &name);
 
@@ -332,12 +320,12 @@ int main(int argc, char **argv) {
 	setlocale(LC_ALL, "");
 
 	outfile = stdout;
-	wstring_init(&inclusive_chars, token_inclusive_chars);
-	wstring_init_blank(&wc_buffer, 128);
-	wstring_init_blank(&quote_buffer, 128);
+	cstring_init(&inclusive_chars, token_inclusive_chars);
+	cstring_init_blank(&c_buffer, 128);
+	cstring_init_blank(&quote_buffer, 128);
 
-	vector_init(&include_directories, 1, sizeof(wstring_t));
-	wstring_init((wstring_t*)vector_push_blank(&include_directories), L"./");
+	vector_init(&include_directories, 1, sizeof(cstring_t));
+	cstring_init((cstring_t*)vector_push_blank(&include_directories), "./");
 
 	vector_init(&input_files, 1, sizeof(struct input_file));
 	
@@ -368,12 +356,12 @@ int main(int argc, char **argv) {
 
 	token_store_destroy(&store);
 
-	wstring_destroy(&inclusive_chars);
-	wstring_destroy(&wc_buffer);
-	wstring_destroy(&quote_buffer);
+	cstring_destroy(&inclusive_chars);
+	cstring_destroy(&c_buffer);
+	cstring_destroy(&quote_buffer);
 
 	for ( unsigned int i = 0; i < include_directories.size; i++ ) {
-		wstring_destroy((wstring_t*)vector_get(&include_directories, i));
+		cstring_destroy((cstring_t*)vector_get(&include_directories, i));
 	}
 
 	vector_destroy(&include_directories);
