@@ -99,3 +99,10 @@ io_interface_t io_interface_sts(wchar_t **instring_reader, wstring_t *outstring)
 
 	return io;
 }
+
+int wstring_write(const wstring_t *wstring, io_interface_t *io) {
+	for ( unsigned int i = 0; i < wstring->size; i++ ) {
+		io_put(io, wstring->data[i]);
+	}
+	return 0;
+}

@@ -46,7 +46,7 @@ int check_inclusive_wc(wchar_t wc) {
 		return 1;
 	}
 
-       	return wstring_contains_wc(&inclusive_chars, wc);
+       	return wstring_contains(&inclusive_chars, wc);
 }
 
 
