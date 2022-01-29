@@ -1,2 +1,4 @@
-prep
-prep-debug
+*
+!src
+!Makefile
+!.gitignore
