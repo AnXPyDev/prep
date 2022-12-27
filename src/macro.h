@@ -1,5 +1,3 @@
-#include <alloca.h>
-
 typedef struct macro_payload {
 	vector_t arguments;
 	cstring_t content;
