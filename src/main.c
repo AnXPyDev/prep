@@ -53,7 +53,7 @@ int check_inclusive_c(char c) {
 void *sub_base(io_interface_t *io) {
 	cstring_t log;
 	cstring_init_blank(&log, 12);
-	char c = 0;
+	int c = 0;
 	int eof = 0;
 	int escaped = 0;
 	unsigned int quoted = 0;

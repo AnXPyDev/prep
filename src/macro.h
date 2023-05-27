@@ -45,7 +45,7 @@ void *sub_macro(io_interface_t *io, token_t *macro_token) {
 	cstring_t *argument = NULL;
 	unsigned int aix = 0;
 	
-	char c;
+	int c;
 	int eof = 0;
 	int escaped = 0;
 	unsigned int quoted = 0;

@@ -1,7 +1,7 @@
-typedef char (*io_get_fn)(void*);
-typedef void (*io_put_fn)(char, void*);
+typedef int (*io_get_fn)(void*);
+typedef void (*io_put_fn)(int, void*);
 typedef int (*io_eof_fn)(void*);
-typedef void (*io_unget_fn)(char, void*);
+typedef void (*io_unget_fn)(int, void*);
 
 typedef struct io_interface_s {
 	 io_get_fn get;
@@ -16,11 +16,11 @@ typedef struct io_interface_s {
 
 
 
-char io_get_file(void *file) {
+int io_get_file(void *file) {
 	return fgetc((FILE*)file);
 }
 
-void io_put_file(char c, void *file) {
+void io_put_file(int c, void *file) {
 	fputc(c, (FILE*)file);
 }
 
@@ -28,35 +28,35 @@ int io_eof_file(void *file) {
 	return feof((FILE*)file);
 }
 
-void io_unget_file(char c, void *file) {
+void io_unget_file(int c, void *file) {
 	ungetc(c, (FILE*)file);
 }
 
-char io_get_string(void *string) {
-	char result = *(*(char**)string);
+int io_get_string(void *string) {
+	int result = *(*(char**)string);
 	(*(char**)string)++;
 	return result;
 }
 
-void io_put_string(char c, void *string) {
-	cstring_put((cstring_t*)string, c);
+void io_put_string(int c, void *string) {
+	cstring_put((cstring_t*)string, (char)c);
 }
 
 int io_eof_string(void *string) {
 	return **(char**)string == '\0';
 }
 
-void io_unget_string(char c, void *string) {
+void io_unget_string(int c, void *string) {
 	(*(char**)string)--;
 }
 
-char io_get(io_interface_t *io) {
+int io_get(io_interface_t *io) {
 	return io->get(io->in_payload);
 }
 
 #include <signal.h>
 
-void io_put(io_interface_t *io, char c) {
+void io_put(io_interface_t *io, int c) {
 	if ( (io->is_default_out && !mute) || !io->is_default_out ) {
 		io->put(c, io->out_payload);
 	}
@@ -66,7 +66,7 @@ int io_eof(io_interface_t *io) {
 	return io->eof(io->in_payload);
 }
 
-void io_unget(io_interface_t *io, char c) {
+void io_unget(io_interface_t *io, int c) {
 	return io->unget(c, io->in_payload);
 }
 
