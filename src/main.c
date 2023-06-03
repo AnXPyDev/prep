@@ -156,9 +156,8 @@ void *sub_base(io_interface_t *io) {
 				if ( quoted ) {
 					escaped = 2;
 					goto write_c;
-				} else {
-					escaped = 1;
 				}
+				escaped = 1;
 			} else {
 				goto write_c;
 			}

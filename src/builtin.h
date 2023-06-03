@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+
+cstring_t syscode_token_string;
+
 typedef void *(*builtin_fn)(io_interface_t*, token_store_t*, vector_t*);
 
 void *builtin_pushs(io_interface_t *io, token_store_t *store, vector_t *args) {
@@ -391,8 +394,19 @@ void *builtin_sys(io_interface_t *io, token_store_t *store, vector_t *args) {
 		cstring_put(&output_s, c);
 	}
 
-	pclose(output);
+	int code = pclose(output);
+	// set syscode variable
+	{
+		token_t *token = ensure_token(store, &syscode_token_string);
+		
+		cstring_t *content = malloc(sizeof(cstring_t));
+		cstring_init_blank(content, 14);
+		content->size = sprintf(content->data, "%i", code);
 
+		token_def_t *def = token_def_create(token_string, (void*)content);
+		token_pushdef(token, def);
+	}
+	
 	io_interface_t sub_io = *io;
 
 	char *string_reader = output_s.data;
@@ -438,6 +452,17 @@ void *builtin_log(io_interface_t *io, token_store_t *store, vector_t *args) {
 
 
 void setup_builtins(token_store_t *store) {
+	{
+		cstring_init(&syscode_token_string, syscode_token);
+
+		token_t *token = ensure_token(store, &syscode_token_string);
+
+		cstring_t *content = malloc(sizeof(cstring_t));
+		cstring_init(content, "0");
+
+		token_def_t *def = token_def_create(token_string, (void*)content);
+		token_pushdef(token, def);
+	}
 	{
 		cstring_t key;
 		cstring_init(&key, "pushs");

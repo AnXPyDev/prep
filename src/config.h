@@ -12,3 +12,5 @@ const char macro_argument_list_close = ')';
 const char macro_argument_list_delimiter = ',';
 
 const char *token_inclusive_chars = "-_";
+
+const char *syscode_token = "syscode";
