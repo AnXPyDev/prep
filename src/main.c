@@ -10,6 +10,7 @@
 #include "hashmap.h"
 
 int mute = 0;
+int escape = 0;
 
 #include "io.h"
 
@@ -151,7 +152,7 @@ void *sub_base(io_interface_t *io) {
 		
 	
 		// Handle escaped characters
-		if ( c == escape_c ) {
+		if ( escape == 0 && c == escape_c ) {
 			if ( !escaped ) {
 				if ( quoted ) {
 					escaped = 2;

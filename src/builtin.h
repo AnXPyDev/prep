@@ -363,6 +363,30 @@ void *builtin_ifneq(io_interface_t *io, token_store_t *store, vector_t *args) {
 	return NULL;
 }
 
+void *builtin_env(io_interface_t *io, token_store_t *store, vector_t *args) {
+	if ( args->size < 1 ) {
+		fprintf(stderr, "missing arguments for builtin env\n");
+		return NULL;
+	}
+
+	cstring_t *name = (cstring_t*)vector_get(args, 0);
+	char *value = getenv(name->data);
+	if (value == NULL) {
+		return NULL;
+	}
+
+	io_interface_t sub_io = *io;
+
+	sub_io.get = io_get_string;
+	sub_io.eof = io_eof_string;
+	sub_io.unget = io_unget_string;
+	sub_io.in_payload = (void*)&value;
+
+	sub_base(&sub_io);
+
+	return NULL;
+}
+
 void *builtin_sys(io_interface_t *io, token_store_t *store, vector_t *args) {
 	if ( args->size < 1 ) {
 		fprintf(stderr, "missing arguments for builtin sys\n");
@@ -594,6 +618,15 @@ void setup_builtins(token_store_t *store) {
 		cstring_init(&key, "sys");
 		token_t *macro = register_token_blank(store, &key);
 		token_def_t *def = token_def_create(token_builtin, (void*)&builtin_sys);
+		token_pushdef(macro, def);
+		cstring_destroy(&key);
+	}
+
+	{
+		cstring_t key;
+		cstring_init(&key, "env");
+		token_t *macro = register_token_blank(store, &key);
+		token_def_t *def = token_def_create(token_builtin, (void*)&builtin_env);
 		token_pushdef(macro, def);
 		cstring_destroy(&key);
 	}
